@@ -12,8 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -23,7 +21,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -34,13 +31,14 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.skipskip.app.ui.CellDivider
 import com.skipskip.app.ui.Chevron
+import com.skipskip.app.ui.CompactSwitch
 import com.skipskip.app.ui.GroupFooter
 import com.skipskip.app.ui.GroupHeader
-import com.skipskip.app.ui.HeaderInset
+import com.skipskip.app.ui.PageHeader
 import com.skipskip.app.ui.ScreenPadding
 import com.skipskip.app.ui.SettingsCell
 import com.skipskip.app.ui.SettingsGroup
-import com.skipskip.app.ui.SwitchScale
+import com.skipskip.app.ui.SettingsPage
 import com.skipskip.app.ui.theme.SkipSkipTheme
 
 class MainActivity : ComponentActivity() {
@@ -48,14 +46,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SkipSkipTheme {
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    // 页面底用浅灰，让白色卡片浮出来，与系统设置页一致
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ) { innerPadding ->
-                    HomeRoute(modifier = Modifier.padding(innerPadding))
-                }
+            SettingsPage { innerPadding ->
+                HomeRoute(modifier = Modifier.padding(innerPadding))
             }
         }
     }
@@ -140,16 +132,8 @@ fun HomeScreen(
             .padding(horizontal = ScreenPadding)
             .padding(bottom = ScreenPadding),
     ) {
-        // 页面标题：与系统设置页一致，常规字重、左对齐
-        Text(
-            text = stringResource(R.string.home_title),
-            modifier = Modifier.padding(
-                start = HeaderInset,
-                top = 12.dp,
-                bottom = 20.dp,
-            ),
-            style = MaterialTheme.typography.titleLarge,
-        )
+        // 页面标题
+        PageHeader(title = stringResource(R.string.home_title))
 
         // 第一组：状态（无小标题）
         SettingsGroup {
@@ -227,11 +211,9 @@ private fun StatusCell(
         onClick = if (serviceEnabled) null else onOpenAccessibility,
         trailing = {
             if (serviceEnabled) {
-                // M3 开关无尺寸参数，整体缩放到接近厂商系统开关的观感
-                Switch(
+                CompactSwitch(
                     checked = autoClickEnabled,
                     onCheckedChange = onAutoClickChange,
-                    modifier = Modifier.scale(SwitchScale),
                 )
             } else {
                 Chevron()
