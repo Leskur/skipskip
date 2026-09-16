@@ -42,6 +42,12 @@ class SkipSkipAccessibilityService : AccessibilityService() {
         if (now - lastClickAt < CLICK_COOLDOWN_MS) return
 
         val root = rootInActiveWindow ?: return
+
+        // 应用范围：自己和系统 UI 永不处理；用户排除的也跳过
+        val pkg = root.packageName?.toString() ?: event.packageName?.toString()
+        if (pkg == null || pkg == packageName || pkg in ALWAYS_EXCLUDED) return
+        if (pkg in SkipPrefs.excludedPackages(this)) return
+
         val target = findSkipNode(root) ?: return
         if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
             lastClickAt = now
@@ -84,6 +90,11 @@ class SkipSkipAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "SkipSkipService"
         private const val CLICK_COOLDOWN_MS = 1500L
+
+        private val ALWAYS_EXCLUDED = setOf(
+            "com.android.systemui",
+            "com.android.settings",
+        )
 
         @Volatile
         private var lastClickAt: Long = 0L

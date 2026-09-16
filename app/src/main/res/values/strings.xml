@@ -10,6 +10,13 @@
 
     <string name="accessibility_guide">无障碍 → 已下载的应用 → SkipSkip → 开启（部分机型为已安装的服务）</string>
 
+    <string name="section_rules">规则</string>
+    <string name="excluded_apps_title">排除的应用</string>
+    <string name="excluded_apps_summary_none">所有应用都会自动跳过</string>
+    <string name="excluded_apps_summary">已排除 %1$d 个应用</string>
+    <string name="excluded_apps_footer">勾选后，SkipSkip 在这些应用中不会自动点击。适合有正常「跳过」按钮、不希望被自动点掉的应用，如视频、阅读类。</string>
+    <string name="back">返回</string>
+
     <string name="section_settings">建议</string>
     <string name="battery_title">后台运行</string>
     <string name="battery_desc_off">减少被系统省电策略限制或停止</string>

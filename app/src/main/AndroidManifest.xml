@@ -3,6 +3,14 @@
 
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <!-- Android 11+ 包可见性：列出带启动图标的应用需要声明 -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -23,6 +31,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ExcludedAppsActivity"
+            android:exported="false"
+            android:label="@string/excluded_apps_title"
+            android:parentActivityName=".MainActivity" />
 
         <service
             android:name=".SkipSkipAccessibilityService"

@@ -1,0 +1,136 @@
+package com.skipskip.app.ui
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+
+/*
+ * 系统设置页风格的分组列表组件。
+ * 尺寸刻度参考厂商系统设置页：卡片贴边 12、卡片内 16、组间 20。
+ */
+
+val ScreenPadding = 12.dp     // 卡片到屏幕边
+val CellPadding = 16.dp       // 卡片内文字到卡片边
+val HeaderInset = 16.dp       // 小标题 / 页脚缩进，与卡片内文字对齐
+val CardRadius = 14.dp
+val GroupGap = 20.dp          // 组与组之间
+const val SwitchScale = 0.85f // M3 开关无尺寸参数，整体缩放到接近厂商观感
+
+/** 白色圆角卡片，内部叠多个 cell */
+@Composable
+fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CardRadius),
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+    ) {
+        Column(content = content)
+    }
+}
+
+/** 组标题：小字、灰色、略缩进，位于卡片上方 */
+@Composable
+fun GroupHeader(text: String) {
+    Text(
+        text = text,
+        modifier = Modifier.padding(
+            start = HeaderInset,
+            end = HeaderInset,
+            top = GroupGap,
+            bottom = 8.dp,
+        ),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** 组页脚：卡片下方的一行灰色说明 */
+@Composable
+fun GroupFooter(text: String) {
+    Text(
+        text = text,
+        modifier = Modifier.padding(
+            start = HeaderInset,
+            end = HeaderInset,
+            top = 8.dp,
+        ),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+fun CellDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = CellPadding),
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+    )
+}
+
+@Composable
+fun Chevron() {
+    Icon(
+        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/**
+ * 通用一行：可选左侧内容 + 标题 + 可选说明 + 右侧控件；整行可点。
+ */
+@Composable
+fun SettingsCell(
+    title: String,
+    summary: String? = null,
+    titleColor: Color = Color.Unspecified,
+    onClick: (() -> Unit)? = null,
+    leading: (@Composable () -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = CellPadding, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        leading?.invoke()
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = titleColor,
+            )
+            if (summary != null) {
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        trailing?.invoke()
+    }
+}
