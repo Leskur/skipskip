@@ -1,7 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+// 本地：工程根目录 keystore.properties（已 gitignore）
+// CI：环境变量 SIGNING_*（来自 GitHub Secrets）
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun signingValue(envKey: String, propKey: String): String? =
+    System.getenv(envKey)?.takeIf { it.isNotBlank() }
+        ?: keystoreProperties.getProperty(propKey)?.takeIf { it.isNotBlank() }
 
 android {
     namespace = "com.skipskip.app"
@@ -16,9 +29,24 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        val storeFilePath = signingValue("SIGNING_STORE_FILE", "storeFile")
+        val storePassword = signingValue("SIGNING_STORE_PASSWORD", "storePassword")
+        val keyAlias = signingValue("SIGNING_KEY_ALIAS", "keyAlias")
+        val keyPassword = signingValue("SIGNING_KEY_PASSWORD", "keyPassword")
+        if (storeFilePath != null && storePassword != null && keyAlias != null && keyPassword != null) {
+            create("release") {
+                storeFile = rootProject.file(storeFilePath)
+                this.storePassword = storePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            }
+        }
     }
 
     buildTypes {
@@ -26,8 +54,9 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
     compileOptions {

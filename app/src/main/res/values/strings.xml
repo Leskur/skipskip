@@ -15,7 +15,7 @@
     <string name="excluded_apps_title">排除的应用</string>
     <string name="excluded_apps_summary_none">所有应用都会自动跳过</string>
     <string name="excluded_apps_summary">已排除 %1$d 个应用</string>
-    <string name="excluded_apps_footer">开启后，SkipSkip 在这些应用中不会自动点击。适合有正常「跳过」按钮、不希望被自动点掉的应用，如视频、阅读类。</string>
+    <string name="excluded_apps_footer">开启后，这些应用里不会自动跳过。适合视频、阅读等有正常「跳过」按钮的应用。</string>
     <string name="excluded_apps_search">搜索应用</string>
     <string name="excluded_apps_empty">没有匹配的应用</string>
     <string name="excluded_apps_group_on">已排除 %1$d 个应用</string>

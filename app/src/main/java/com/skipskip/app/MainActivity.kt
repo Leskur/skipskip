@@ -125,69 +125,69 @@ fun HomeScreen(
     onOpenRecents: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = ScreenPadding)
-            .padding(bottom = ScreenPadding),
-    ) {
-        // 页面标题
+    Column(modifier = modifier.fillMaxSize()) {
         PageHeader(title = stringResource(R.string.home_title))
-
-        // 第一组：开始（上边距收紧，避免和大标题叠出过大空白）
-        GroupHeader(
-            text = stringResource(R.string.section_start),
-            topPadding = 4.dp,
-        )
-        SettingsGroup {
-            StatusCell(
-                serviceEnabled = serviceEnabled,
-                autoClickEnabled = autoClickEnabled,
-                onAutoClickChange = onAutoClickChange,
-                onOpenAccessibility = onOpenAccessibility,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = ScreenPadding)
+                .padding(bottom = ScreenPadding),
+        ) {
+            // 第一组：开始
+            GroupHeader(
+                text = stringResource(R.string.section_start),
+                topPadding = 4.dp,
             )
-        }
-        if (!serviceEnabled) {
-            GroupFooter(stringResource(R.string.accessibility_guide))
-        }
+            SettingsGroup {
+                StatusCell(
+                    serviceEnabled = serviceEnabled,
+                    autoClickEnabled = autoClickEnabled,
+                    onAutoClickChange = onAutoClickChange,
+                    onOpenAccessibility = onOpenAccessibility,
+                )
+            }
+            if (!serviceEnabled) {
+                GroupFooter(stringResource(R.string.accessibility_guide))
+            }
 
-        // 第二组：规则
-        GroupHeader(stringResource(R.string.section_rules))
-        SettingsGroup {
-            SettingsCell(
-                title = stringResource(R.string.excluded_apps_title),
-                summary = if (excludedCount == 0) {
-                    stringResource(R.string.excluded_apps_summary_none)
-                } else {
-                    stringResource(R.string.excluded_apps_summary, excludedCount)
-                },
-                onClick = onOpenExcludedApps,
-                trailing = { Chevron() },
-            )
-        }
-
-        // 第三组：建议
-        GroupHeader(stringResource(R.string.section_settings))
-        SettingsGroup {
-            if (!batteryIgnored) {
+            // 第二组：规则
+            GroupHeader(stringResource(R.string.section_rules))
+            SettingsGroup {
                 SettingsCell(
-                    title = stringResource(R.string.battery_title),
-                    summary = stringResource(R.string.battery_desc_off),
-                    onClick = onRequestBattery,
+                    title = stringResource(R.string.excluded_apps_title),
+                    summary = if (excludedCount == 0) {
+                        stringResource(R.string.excluded_apps_summary_none)
+                    } else {
+                        stringResource(R.string.excluded_apps_summary, excludedCount)
+                    },
+                    onClick = onOpenExcludedApps,
                     trailing = { Chevron() },
                 )
-                CellDivider()
             }
-            // 已授权时可借无障碍全局动作跳到最近任务；加锁本身仍需用户手动
-            SettingsCell(
-                title = stringResource(R.string.lock_hint_title),
-                summary = stringResource(
-                    if (serviceEnabled) R.string.lock_hint_desc_action else R.string.lock_hint_desc,
-                ),
-                onClick = if (serviceEnabled) onOpenRecents else null,
-                trailing = if (serviceEnabled) ({ Chevron() }) else null,
-            )
+
+            // 第三组：建议
+            GroupHeader(stringResource(R.string.section_settings))
+            SettingsGroup {
+                if (!batteryIgnored) {
+                    SettingsCell(
+                        title = stringResource(R.string.battery_title),
+                        summary = stringResource(R.string.battery_desc_off),
+                        onClick = onRequestBattery,
+                        trailing = { Chevron() },
+                    )
+                    CellDivider()
+                }
+                // 已授权时可借无障碍全局动作跳到最近任务；加锁本身仍需用户手动
+                SettingsCell(
+                    title = stringResource(R.string.lock_hint_title),
+                    summary = stringResource(
+                        if (serviceEnabled) R.string.lock_hint_desc_action else R.string.lock_hint_desc,
+                    ),
+                    onClick = if (serviceEnabled) onOpenRecents else null,
+                    trailing = if (serviceEnabled) ({ Chevron() }) else null,
+                )
+            }
         }
     }
 }

@@ -35,13 +35,12 @@ fun SettingsPage(
     }
 }
 
-/** 二级页标题栏底部留白；弹出菜单据此贴到 header 底边 */
+/** 标题栏底部留白；弹出菜单据此贴到 header 底边 */
 val HeaderBottomPadding = 8.dp
 
 /**
- * 页面标题。带 [onBack] 时显示返回按钮（二级页）；
- * [actions] 放在右上角，例如三点菜单。
- * 不带返回和操作时与首页标题对齐。
+ * 页面标题栏（首页与内页同一套紧凑高度）。
+ * [onBack]：二级页返回；[actions]：右上角操作（如三点菜单）。
  */
 @Composable
 fun PageHeader(
@@ -49,44 +48,32 @@ fun PageHeader(
     onBack: (() -> Unit)? = null,
     actions: (@Composable () -> Unit)? = null,
 ) {
-    if (onBack != null || actions != null) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = if (onBack != null) 4.dp else HeaderInset,
-                    end = if (actions != null) 4.dp else 16.dp,
-                    top = 4.dp,
-                    bottom = HeaderBottomPadding,
-                ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.back),
-                    )
-                }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = if (onBack != null) 4.dp else HeaderInset,
+                end = if (actions != null) 4.dp else 16.dp,
+                top = 4.dp,
+                bottom = HeaderBottomPadding,
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (onBack != null) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.back),
+                )
             }
-            Text(
-                text = title,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            actions?.invoke()
         }
-    } else {
         Text(
             text = title,
-            modifier = Modifier.padding(
-                start = HeaderInset,
-                top = 12.dp,
-                bottom = 20.dp,
-            ),
+            modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.titleLarge,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
+        actions?.invoke()
     }
 }

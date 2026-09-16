@@ -11,6 +11,9 @@ import android.view.accessibility.AccessibilityNodeInfo
 
 /**
  * 学习向实现：界面变化时查找含「跳过」等文案的可点击节点并点击。
+ *
+ * 窗口切换后开启约 5 秒的「开屏观察期」，仅在此期间响应内容变化，
+ * 避免日常刷列表时反复扫节点。
  */
 class SkipSkipAccessibilityService : AccessibilityService() {
 
@@ -24,6 +27,8 @@ class SkipSkipAccessibilityService : AccessibilityService() {
     override fun onUnbind(intent: Intent?): Boolean {
         isConnected = false
         instance = null
+        splashWatchPackage = null
+        splashWatchAt = 0L
         Log.i(TAG, "service unbound")
         return super.onUnbind(intent)
     }
@@ -32,21 +37,46 @@ class SkipSkipAccessibilityService : AccessibilityService() {
         if (event == null) return
         if (!SkipPrefs.isAutoClickEnabled(this)) return
 
-        when (event.eventType) {
+        val eventType = event.eventType
+        when (eventType) {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> Unit
             else -> return
         }
 
         val now = System.currentTimeMillis()
+        val eventPkg = event.packageName?.toString()
+
+        if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
+            // 覆盖上一次观察期；连续切 App 只会留下最后一次
+            if (eventPkg != null) {
+                splashWatchPackage = eventPkg
+                splashWatchAt = now
+            }
+        } else {
+            // 内容变化：只在观察期内、且仍是刚切到前台的那个包
+            val watchPkg = splashWatchPackage
+            if (watchPkg == null ||
+                now - splashWatchAt > SPLASH_WATCH_MS ||
+                (eventPkg != null && eventPkg != watchPkg)
+            ) {
+                return
+            }
+        }
+
         if (now - lastClickAt < CLICK_COOLDOWN_MS) return
 
         val root = rootInActiveWindow ?: return
 
         // 应用范围：自己和系统 UI 永不处理；用户排除的也跳过
-        val pkg = root.packageName?.toString() ?: event.packageName?.toString()
+        val pkg = root.packageName?.toString() ?: eventPkg
         if (pkg == null || pkg == packageName || pkg in ALWAYS_EXCLUDED) return
         if (pkg in SkipPrefs.excludedPackages(this)) return
+
+        // 内容变化时再核对一次：前台根节点仍须是观察中的包
+        if (eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            if (pkg != splashWatchPackage || now - splashWatchAt > SPLASH_WATCH_MS) return
+        }
 
         val target = findSkipNode(root) ?: return
         if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
@@ -90,6 +120,8 @@ class SkipSkipAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "SkipSkipService"
         private const val CLICK_COOLDOWN_MS = 1500L
+        /** 切到前台后，允许 CONTENT_CHANGED 继续找跳过的时长 */
+        private const val SPLASH_WATCH_MS = 5000L
 
         private val ALWAYS_EXCLUDED = setOf(
             "com.android.systemui",
@@ -98,6 +130,13 @@ class SkipSkipAccessibilityService : AccessibilityService() {
 
         @Volatile
         private var lastClickAt: Long = 0L
+
+        /** 最近一次窗口切换对应的包名；内容变化只服务这个包 */
+        @Volatile
+        private var splashWatchPackage: String? = null
+
+        @Volatile
+        private var splashWatchAt: Long = 0L
 
         @Volatile
         var isConnected: Boolean = false

@@ -1,6 +1,6 @@
 # checkout / upload-artifact @v7；发版用 softprops/action-gh-release@v3。
-# 推送 v*.*.* 标签（例如 v0.0.1）时创建 GitHub Release。
-# 仓库里没有正式签名密钥，产物是 debug 签名 APK，方便学习版侧载。
+# 推送 v*.*.* 标签时打 release 签名 APK 并创建 GitHub Release。
+# 签名密钥来自仓库 Secrets（勿把 keystore 提交进本仓）。
 name: Release
 
 on:
@@ -19,8 +19,23 @@ jobs:
 
       - uses: ./.github/actions/setup-android-build
 
-      - name: Test and assemble debug
-        run: ./gradlew --stacktrace :app:test :app:assembleDebug
+      - name: Decode signing keystore
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$SIGNING_KEYSTORE_BASE64" ]; then
+            echo "Missing secret SIGNING_KEYSTORE_BASE64"
+            exit 1
+          fi
+          echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > skipskip-release.keystore
+
+      - name: Test and assemble release
+        env:
+          SIGNING_STORE_FILE: ${{ github.workspace }}/skipskip-release.keystore
+          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+        run: ./gradlew --stacktrace :app:test :app:assembleRelease
 
       - name: Stage APK
         shell: bash
@@ -31,7 +46,7 @@ jobs:
           else
             version="${GITHUB_SHA::7}"
           fi
-          cp app/build/outputs/apk/debug/app-debug.apk "dist/SkipSkip-${version}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "dist/SkipSkip-${version}.apk"
 
       - uses: actions/upload-artifact@v7
         with:

@@ -86,7 +86,7 @@ import java.text.Collator
 import java.util.Locale
 
 /**
- * 「排除的应用」：开关打开后 SkipSkip 在该应用中不自动点击。
+ * 「排除的应用」：开关打开后 SkipSkip 在该应用中不自动跳过。
  */
 class ExcludedAppsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

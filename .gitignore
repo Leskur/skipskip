@@ -8,3 +8,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# 签名密钥与本地配置（只放 GitHub Secrets / 私有备份仓）
+keystore.properties
+*.keystore
+*.jks
