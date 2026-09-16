@@ -54,24 +54,29 @@ class SkipSkipAccessibilityService : AccessibilityService() {
         Log.w(TAG, "service interrupted")
     }
 
-    private fun findSkipNode(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        val label = buildString {
-            append(node.text ?: "")
-            append(' ')
-            append(node.contentDescription ?: "")
-        }
-
-        if (SKIP_KEYWORDS.any { label.contains(it) }) {
-            var clickableNode: AccessibilityNodeInfo? = node
-            while (clickableNode != null) {
-                if (clickableNode.isClickable) return clickableNode
-                clickableNode = clickableNode.parent
+    /**
+     * 两步找目标：
+     * 1. 让系统按关键字粗筛（比自己遍历整棵树快得多）
+     * 2. 用 SkipMatcher 精确判断文案，再向上找到真正可点击的祖先
+     */
+    private fun findSkipNode(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        for (key in SkipMatcher.SEARCH_KEYS) {
+            val candidates = root.findAccessibilityNodeInfosByText(key) ?: continue
+            for (node in candidates) {
+                val hit = SkipMatcher.matches(node.text) ||
+                    SkipMatcher.matches(node.contentDescription)
+                if (!hit) continue
+                findClickableAncestor(node)?.let { return it }
             }
         }
+        return null
+    }
 
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            findSkipNode(child)?.let { return it }
+    private fun findClickableAncestor(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        var current: AccessibilityNodeInfo? = node
+        while (current != null) {
+            if (current.isClickable) return current
+            current = current.parent
         }
         return null
     }
@@ -79,12 +84,6 @@ class SkipSkipAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "SkipSkipService"
         private const val CLICK_COOLDOWN_MS = 1500L
-
-        private val SKIP_KEYWORDS = listOf(
-            "跳过",
-            "跳过广告",
-            "关闭广告",
-        )
 
         @Volatile
         private var lastClickAt: Long = 0L
