@@ -12,7 +12,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 /**
  * 学习向实现：界面变化时查找含「跳过」等文案的可点击节点并点击。
  *
- * 窗口切换后开启约 5 秒的「开屏观察期」，仅在此期间响应内容变化，
+ * 窗口切换后开启约 8 秒的「开屏观察期」，仅在此期间响应内容变化，
  * 避免日常刷列表时反复扫节点。
  */
 class SkipSkipAccessibilityService : AccessibilityService() {
@@ -121,11 +121,13 @@ class SkipSkipAccessibilityService : AccessibilityService() {
         private const val TAG = "SkipSkipService"
         private const val CLICK_COOLDOWN_MS = 1500L
         /** 切到前台后，允许 CONTENT_CHANGED 继续找跳过的时长 */
-        private const val SPLASH_WATCH_MS = 5000L
+        private const val SPLASH_WATCH_MS = 8000L
 
         private val ALWAYS_EXCLUDED = setOf(
             "com.android.systemui",
             "com.android.settings",
+            "com.skipskip.app",
+            "com.skipskip.app.debug",
         )
 
         @Volatile

@@ -2,9 +2,10 @@ package com.skipskip.app
 
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.drawable.Drawable
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
+import android.util.LruCache
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -43,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +52,8 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -80,6 +84,7 @@ import com.skipskip.app.ui.SettingsCell
 import com.skipskip.app.ui.SettingsPage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.Collator
@@ -130,6 +135,17 @@ private fun ExcludedAppsRoute(onBack: () -> Unit, modifier: Modifier = Modifier)
     }
     val onList = remember(filtered, excluded) { filtered.filter { it.packageName in excluded } }
     val offList = remember(filtered, excluded) { filtered.filter { it.packageName !in excluded } }
+    val iconPx = with(LocalDensity.current) { AppIconSize.roundToPx() }
+    LaunchedEffect(apps, iconPx) {
+        val list = apps ?: return@LaunchedEffect
+        val pm = context.packageManager
+        withContext(IconDecodeDispatcher) {
+            for (app in list) {
+                ensureActive()
+                AppIconCache.load(pm, app.packageName, iconPx)
+            }
+        }
+    }
     val scope = rememberCoroutineScope()
     val commitToggle: (String, Boolean) -> Unit = { pkg, isOn ->
         SkipPrefs.setExcluded(context, pkg, isOn)
@@ -375,7 +391,11 @@ private fun LazyListScope.appRows(
     showPackageNames: Boolean,
     onToggle: (packageName: String, excluded: Boolean) -> Unit,
 ) {
-    itemsIndexed(apps, key = { _, app -> app.packageName }) { index, app ->
+    itemsIndexed(
+        apps,
+        key = { _, app -> app.packageName },
+        contentType = { _, _ -> "app" },
+    ) { index, app ->
         val isFirst = index == 0
         val isLast = index == apps.lastIndex
         val shape = RoundedCornerShape(
@@ -386,7 +406,7 @@ private fun LazyListScope.appRows(
         )
         Column(
             modifier = Modifier
-                .animateItem()
+                .animateItem(fadeInSpec = null)
                 .fillMaxWidth()
                 .padding(horizontal = ScreenPadding)
                 .clip(shape)
@@ -439,12 +459,16 @@ private fun AppSwitchRow(
 @Composable
 private fun AppIcon(packageName: String) {
     val context = LocalContext.current
-    val bitmap by produceState<androidx.compose.ui.graphics.ImageBitmap?>(initialValue = null, packageName) {
-        value = withContext(Dispatchers.IO) {
-            runCatching {
-                val drawable: Drawable = context.packageManager.getApplicationIcon(packageName)
-                drawable.toBitmap(width = IconPx, height = IconPx).asImageBitmap()
-            }.getOrNull()
+    val sizePx = with(LocalDensity.current) { AppIconSize.roundToPx() }
+    val bitmap by produceState(
+        initialValue = AppIconCache.peek(packageName),
+        packageName,
+        sizePx,
+    ) {
+        if (value == null) {
+            value = withContext(IconDecodeDispatcher) {
+                AppIconCache.load(context.packageManager, packageName, sizePx)
+            }
         }
     }
     Box(
@@ -453,12 +477,47 @@ private fun AppIcon(packageName: String) {
             .clip(RoundedCornerShape(8.dp)),
     ) {
         bitmap?.let {
-            Image(bitmap = it, contentDescription = null, modifier = Modifier.fillMaxSize())
+            Image(
+                bitmap = it,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                filterQuality = FilterQuality.Low,
+            )
         }
     }
 }
 
-private const val IconPx = 144
+private val IconDecodeDispatcher = Dispatchers.IO.limitedParallelism(2)
+
+/** 按显示尺寸栅格化后缓存，避免列表第一次滑过时反复解码、上传 GPU。 */
+private object AppIconCache {
+    private const val MaxBytes = 8 * 1024 * 1024
+    private val lock = Any()
+    private val cache = object : LruCache<String, ImageBitmap>(MaxBytes) {
+        override fun sizeOf(key: String, value: ImageBitmap): Int = value.width * value.height * 4
+    }
+
+    fun peek(packageName: String): ImageBitmap? = synchronized(lock) { cache.get(packageName) }
+
+    fun load(pm: PackageManager, packageName: String, sizePx: Int): ImageBitmap? {
+        peek(packageName)?.let { return it }
+        val image = runCatching {
+            val bitmap = pm.getApplicationIcon(packageName).toBitmap(
+                width = sizePx,
+                height = sizePx,
+                config = Bitmap.Config.ARGB_8888,
+            )
+            bitmap.prepareToDraw()
+            bitmap.asImageBitmap()
+        }.getOrNull() ?: return null
+        synchronized(lock) {
+            cache.get(packageName)?.let { return it }
+            cache.put(packageName, image)
+        }
+        return image
+    }
+}
+
 private const val SwitchMoveDelayMs = 300L
 
 /** 菜单从三点那一侧展开 */

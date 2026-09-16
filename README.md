@@ -1,52 +1,41 @@
 # SkipSkip
 
-学习向的 Android 开屏「跳过」助手：通过系统无障碍服务识别界面上的跳过按钮并模拟点击。
+一个简单的 Android 开屏广告跳过助手。
 
-> 仅用于本人设备上的调试与学习，不是商业广告拦截产品，也不提供李跳跳式自定义规则导入。
+当应用启动页出现“跳过”“跳过广告”或“关闭广告”按钮时，SkipSkip 会尝试自动点击。
 
-## 功能
+## 下载
 
-- 精确匹配「跳过 / 跳过广告 / 关闭广告」（去掉倒计时噪音后整词比较）
-- 应用切到前台后约 5 秒内响应内容变化，减少日常刷列表时的扫描
-- 排除列表：指定应用不自动跳过
-- 建议：忽略电池优化、最近任务加锁
+前往 [Releases](https://github.com/Leskur/skipskip/releases) 下载最新 APK。
 
-## 环境
+支持 Android 8.0 及以上版本。首次安装时，系统可能会提示允许安装来自此来源的应用。
 
-- Android Studio / JDK 17+
-- minSdk 26，targetSdk 36
-- Kotlin + Jetpack Compose
+## 使用方法
 
-## 本地运行
+1. 安装并打开 SkipSkip。
+2. 点击首页的“未授权”。
+3. 在系统无障碍设置中找到 SkipSkip 并开启。
+4. 返回首页，显示“运行中”即可。
 
-```bash
-./gradlew :app:assembleDebug
-```
+如果服务容易被系统停止，可以按首页提示允许后台运行，并在最近任务中给 SkipSkip 加锁。
 
-用 Android Studio 打开工程后，连真机安装即可。首次使用需在系统设置里开启 SkipSkip 无障碍服务。
+## 排除应用
 
-本地 `assembleDebug` 使用本机 debug 签名，与 GitHub Release 的 release 签名不同，不能互相覆盖安装。
+如果某个应用里有正常功能使用的“跳过”按钮，可以在“排除的应用”中关闭对它的自动跳过。
 
-## 发版（GitHub Actions）
+## 检查更新
 
-推送形如 `v0.0.1` 的 tag 后，Release workflow 会：
+在首页“关于”区域点击“检查更新”。发现新版本后，会跳转到 GitHub 下载页面，不会自动安装。
 
-1. 运行测试并打包 **release 签名** APK  
-2. 上传到 GitHub Release（`v0.*` 会标为 prerelease）
+## 隐私与权限
 
-仓库需配置 Actions Secrets（密钥本身不要提交到本仓库）：
+- 自动跳过依赖 Android 无障碍服务读取当前界面文字并执行点击。
+- 识别和点击均在设备本地完成。
+- 只有手动点击“检查更新”时才会访问 GitHub。
+- SkipSkip 不上传使用统计或界面内容。
 
-| Secret | 说明 |
-|--------|------|
-| `SIGNING_KEYSTORE_BASE64` | keystore 文件的 base64 |
-| `SIGNING_STORE_PASSWORD` | 仓库密码 |
-| `SIGNING_KEY_PASSWORD` | 密钥密码 |
-| `SIGNING_KEY_ALIAS` | 密钥别名 |
+## 已知限制
 
-本地若要用同一把钥匙打包，可复制 `keystore.properties.example` 为 `keystore.properties` 并填入路径与密码（该文件已在 `.gitignore` 中）。
-
-## 说明
-
-- 无障碍权限敏感，请只在自己的设备上开启，并知晓其能力边界  
-- 纯图片、无障碍树里没有文案的跳过按钮可能点不到——这是当前产品边界  
-- 欢迎提 Issue / PR；请保持学习向、小而清晰的范围
+- 只能识别无障碍界面中可读取的文字按钮。
+- 纯图片按钮或特殊绘制的广告可能无法跳过。
+- 为避免误触，只在应用切到前台后的短时间内识别常见跳过文案。

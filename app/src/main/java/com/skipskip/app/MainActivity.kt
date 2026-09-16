@@ -1,6 +1,7 @@
 package com.skipskip.app
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -11,14 +12,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,6 +44,9 @@ import com.skipskip.app.ui.SettingsCell
 import com.skipskip.app.ui.SettingsGroup
 import com.skipskip.app.ui.SettingsPage
 import com.skipskip.app.ui.theme.SkipSkipTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +69,10 @@ private fun HomeRoute(modifier: Modifier = Modifier) {
     var autoClickEnabled by remember { mutableStateOf(true) }
     var batteryIgnored by remember { mutableStateOf(false) }
     var excludedCount by remember { mutableIntStateOf(0) }
+    var checkingUpdate by remember { mutableStateOf(false) }
+    var updateResult by remember { mutableStateOf<UpdateChecker.Result?>(null) }
+    val scope = rememberCoroutineScope()
+    val currentVersion = BuildConfig.VERSION_NAME
 
     fun refresh() {
         serviceEnabled = SkipSkipAccessibilityService.isEnabled(context)
@@ -108,8 +119,34 @@ private fun HomeRoute(modifier: Modifier = Modifier) {
             }
         },
         onOpenRecents = { SkipSkipAccessibilityService.openRecents() },
+        currentVersion = currentVersion,
+        checkingUpdate = checkingUpdate,
+        onCheckUpdate = {
+            if (!checkingUpdate) {
+                checkingUpdate = true
+                updateResult = null
+                scope.launch {
+                    val result = withContext(Dispatchers.IO) { UpdateChecker.check(currentVersion) }
+                    checkingUpdate = false
+                    updateResult = result
+                }
+            }
+        },
         modifier = modifier,
     )
+
+    updateResult?.let { result ->
+        UpdateResultDialog(
+            result = result,
+            onDismiss = { updateResult = null },
+            onOpenPage = { url ->
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                }
+                updateResult = null
+            },
+        )
+    }
 }
 
 @Composable
@@ -123,10 +160,13 @@ fun HomeScreen(
     onAutoClickChange: (Boolean) -> Unit,
     onRequestBattery: () -> Unit,
     onOpenRecents: () -> Unit,
+    currentVersion: String,
+    checkingUpdate: Boolean,
+    onCheckUpdate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
-        PageHeader(title = stringResource(R.string.home_title))
+        PageHeader(title = stringResource(R.string.app_name))
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -134,9 +174,9 @@ fun HomeScreen(
                 .padding(horizontal = ScreenPadding)
                 .padding(bottom = ScreenPadding),
         ) {
-            // 第一组：开始
+            // 第一组：自动跳过
             GroupHeader(
-                text = stringResource(R.string.section_start),
+                text = stringResource(R.string.section_auto_skip),
                 topPadding = 4.dp,
             )
             SettingsGroup {
@@ -146,14 +186,7 @@ fun HomeScreen(
                     onAutoClickChange = onAutoClickChange,
                     onOpenAccessibility = onOpenAccessibility,
                 )
-            }
-            if (!serviceEnabled) {
-                GroupFooter(stringResource(R.string.accessibility_guide))
-            }
-
-            // 第二组：规则
-            GroupHeader(stringResource(R.string.section_rules))
-            SettingsGroup {
+                CellDivider()
                 SettingsCell(
                     title = stringResource(R.string.excluded_apps_title),
                     summary = if (excludedCount == 0) {
@@ -165,9 +198,14 @@ fun HomeScreen(
                     trailing = { Chevron() },
                 )
             }
+            if (!serviceEnabled) {
+                GroupFooter(
+                    stringResource(R.string.accessibility_guide, stringResource(R.string.app_name)),
+                )
+            }
 
-            // 第三组：建议
-            GroupHeader(stringResource(R.string.section_settings))
+            // 第二组：保持运行
+            GroupHeader(stringResource(R.string.section_keep_running))
             SettingsGroup {
                 if (!batteryIgnored) {
                     SettingsCell(
@@ -183,9 +221,25 @@ fun HomeScreen(
                     title = stringResource(R.string.lock_hint_title),
                     summary = stringResource(
                         if (serviceEnabled) R.string.lock_hint_desc_action else R.string.lock_hint_desc,
+                        stringResource(R.string.app_name),
                     ),
                     onClick = if (serviceEnabled) onOpenRecents else null,
                     trailing = if (serviceEnabled) ({ Chevron() }) else null,
+                )
+            }
+
+            // 第三组：关于
+            GroupHeader(stringResource(R.string.section_about))
+            SettingsGroup {
+                SettingsCell(
+                    title = stringResource(R.string.update_title),
+                    summary = if (checkingUpdate) {
+                        stringResource(R.string.update_checking)
+                    } else {
+                        stringResource(R.string.update_summary, currentVersion)
+                    },
+                    onClick = if (checkingUpdate) null else onCheckUpdate,
+                    trailing = { Chevron() },
                 )
             }
         }
@@ -226,6 +280,57 @@ private fun StatusCell(
     )
 }
 
+@Composable
+private fun UpdateResultDialog(
+    result: UpdateChecker.Result,
+    onDismiss: () -> Unit,
+    onOpenPage: (String) -> Unit,
+) {
+    val title = stringResource(R.string.update_title)
+    val (message, primary, primaryAction) = when (result) {
+        is UpdateChecker.Result.Latest -> Triple(
+            stringResource(R.string.update_latest),
+            stringResource(R.string.ok),
+            onDismiss,
+        )
+        is UpdateChecker.Result.Available -> Triple(
+            stringResource(R.string.update_available, result.latest),
+            stringResource(R.string.update_view),
+            { onOpenPage(result.pageUrl) },
+        )
+        UpdateChecker.Result.Failed -> Triple(
+            stringResource(R.string.update_failed),
+            stringResource(R.string.update_view),
+            { onOpenPage(UpdateChecker.RELEASES_PAGE) },
+        )
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(message) },
+        confirmButton = {
+            TextButton(onClick = primaryAction) {
+                Text(primary)
+            }
+        },
+        dismissButton = if (result is UpdateChecker.Result.Latest) {
+            null
+        } else {
+            {
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        text = if (result is UpdateChecker.Result.Available) {
+                            stringResource(R.string.update_later)
+                        } else {
+                            stringResource(R.string.ok)
+                        },
+                    )
+                }
+            }
+        },
+    )
+}
+
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview() {
@@ -240,6 +345,9 @@ fun HomeScreenPreview() {
             onAutoClickChange = {},
             onRequestBattery = {},
             onOpenRecents = {},
+            currentVersion = "0.0.1",
+            checkingUpdate = false,
+            onCheckUpdate = {},
         )
     }
 }
