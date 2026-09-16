@@ -1,0 +1,47 @@
+# checkout / upload-artifact @v7；发版用 softprops/action-gh-release@v3。
+# 推送 v*.*.* 标签（例如 v0.0.1）时创建 GitHub Release。
+# 仓库里没有正式签名密钥，产物是 debug 签名 APK，方便学习版侧载。
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/setup-android-build
+
+      - name: Test and assemble debug
+        run: ./gradlew --stacktrace :app:test :app:assembleDebug
+
+      - name: Stage APK
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            version="${GITHUB_REF_NAME}"
+          else
+            version="${GITHUB_SHA::7}"
+          fi
+          cp app/build/outputs/apk/debug/app-debug.apk "dist/SkipSkip-${version}.apk"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: SkipSkip
+          path: dist/*.apk
+          if-no-files-found: error
+
+      - uses: softprops/action-gh-release@v3
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: dist/*.apk
+          generate_release_notes: true
+          prerelease: ${{ startsWith(github.ref_name, 'v0.') }}
