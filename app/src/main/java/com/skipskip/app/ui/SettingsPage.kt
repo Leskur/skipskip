@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -38,8 +39,11 @@ fun SettingsPage(
 /** 标题栏底部留白；弹出菜单据此贴到 header 底边 */
 val HeaderBottomPadding = 8.dp
 
+/** 与 Material IconButton 默认热区一致，保证首页/内页标题栏同高 */
+private val HeaderActionMinHeight = 48.dp
+
 /**
- * 页面标题栏（首页与内页同一套紧凑高度）。
+ * 页面标题栏（首页与内页同一套高度）。
  * [onBack]：二级页返回；[actions]：右上角操作（如三点菜单）。
  */
 @Composable
@@ -56,7 +60,9 @@ fun PageHeader(
                 end = if (actions != null) 4.dp else 16.dp,
                 top = 4.dp,
                 bottom = HeaderBottomPadding,
-            ),
+            )
+            // 首页没有返回键时也占满与 IconButton 相同的高度，避免标题上下位置漂移
+            .heightIn(min = HeaderActionMinHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (onBack != null) {
