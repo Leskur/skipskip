@@ -7,12 +7,12 @@
     <!--
         双箭头「»」：一个 glyph 同时说 Skip 与叠词。
         全部落在 66dp 安全区内（圆心 54,54，半径 33）。
-        两个箭头同一水平中线（y=54），只用深浅区分前后，避免视觉上歪斜。
-        同一文件也作 monochrome 层，alpha 会被主题图标保留。
+        两个箭头同一水平中线（y=54）、同为纯白，就是一个规矩的「»」。
+        同一文件也作 monochrome 层。
     -->
     <path
         android:pathData="M35,40 L51,54 L35,68"
-        android:strokeColor="#B3FFFFFF"
+        android:strokeColor="#FFFFFFFF"
         android:strokeWidth="8"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
