@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">SkipSkip</string>
+    <string name="home_title">SkipSkip</string>
+    <string name="accessibility_service_label">SkipSkip</string>
+    <string name="accessibility_service_description">学习用自动跳过助手：在其它应用界面中识别「跳过」等按钮并模拟点击。仅用于本人设备调试学习。</string>
+
+    <string name="status_on">运行中</string>
+    <string name="status_paused">已暂停</string>
+    <string name="status_off">未授权</string>
+
+    <string name="accessibility_guide">无障碍 → 已下载的应用 → SkipSkip → 开启（部分机型为已安装的服务）</string>
+
+    <string name="section_settings">建议</string>
+    <string name="battery_title">后台运行</string>
+    <string name="battery_desc_off">减少被系统省电策略限制或停止</string>
+
+    <string name="lock_hint_title">应用加锁</string>
+    <string name="lock_hint_desc">在最近任务中给 SkipSkip 加锁，避免一键清理时被关闭</string>
+    <string name="lock_hint_desc_action">点击前往最近任务，给 SkipSkip 加锁，避免一键清理时被关闭</string>
+</resources>
