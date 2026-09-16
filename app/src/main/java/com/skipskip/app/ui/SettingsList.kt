@@ -1,6 +1,7 @@
 package com.skipskip.app.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,17 +20,21 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /*
  * 系统设置页风格的分组列表组件。
- * 尺寸刻度参考厂商系统设置页：卡片贴边 12、卡片内 16、组间 20。
+ * 尺寸刻度参考 ColorOS / 厂商设置页：卡片贴边 12、卡片内 16、行高略收。
  */
 
 val ScreenPadding = 12.dp     // 卡片到屏幕边
@@ -38,9 +43,11 @@ val HeaderInset = 16.dp       // 小标题 / 页脚缩进，与卡片内文字�
 val CardRadius = 14.dp
 val GroupGap = 20.dp          // 组与组之间
 val AppIconSize = 32.dp       // 与系统设置列表图标接近
+val CellVerticalPadding = 12.dp // 首页单行；有副标题时仍够用
 const val SwitchScale = 0.85f // M3 开关无尺寸参数，整体缩放到接近厂商观感
 private val SwitchTrackWidth = 52.dp
 private val SwitchTrackHeight = 32.dp
+private val ChevronSize = 18.dp
 
 /** 缩放开关，并收掉 scale 留下的空白，让它和 32dp 图标、正文垂直对齐 */
 @Composable
@@ -69,12 +76,15 @@ fun CompactSwitch(
     }
 }
 
-/** 白色圆角卡片，内部叠多个 cell */
+/** 白色圆角卡片，内部叠多个 cell；显式 clip，让首尾行涟漪也吃到圆角 */
 @Composable
 fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
+    val shape = RoundedCornerShape(CardRadius)
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(CardRadius),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape),
+        shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
     ) {
         Column(content = content)
@@ -83,13 +93,16 @@ fun SettingsGroup(content: @Composable ColumnScope.() -> Unit) {
 
 /** 组标题：小字、灰色、略缩进，位于卡片上方 */
 @Composable
-fun GroupHeader(text: String) {
+fun GroupHeader(
+    text: String,
+    topPadding: Dp = GroupGap,
+) {
     Text(
         text = text,
         modifier = Modifier.padding(
             start = HeaderInset,
             end = HeaderInset,
-            top = GroupGap,
+            top = topPadding,
             bottom = 8.dp,
         ),
         style = MaterialTheme.typography.bodySmall,
@@ -120,17 +133,20 @@ fun CellDivider() {
     )
 }
 
+/** ColorOS 风格：细、浅、略小的右箭头 */
 @Composable
 fun Chevron() {
     Icon(
         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(ChevronSize),
+        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.28f),
     )
 }
 
 /**
  * 通用一行：可选左侧内容 + 标题 + 可选说明 + 右侧控件；整行可点。
+ * 涟漪用淡灰、bounded，由外层卡片 clip 吃掉圆角外溢。
  */
 @Composable
 fun SettingsCell(
@@ -140,12 +156,28 @@ fun SettingsCell(
     onClick: (() -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
-    verticalPadding: Dp = 14.dp,
+    verticalPadding: Dp = CellVerticalPadding,
+    summaryMaxLines: Int = Int.MAX_VALUE,
+    titleSummarySpacing: Dp = 1.dp,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = ripple(
+                            bounded = true,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                        ),
+                        onClick = onClick,
+                    )
+                } else {
+                    Modifier
+                },
+            )
             .padding(horizontal = CellPadding, vertical = verticalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -153,7 +185,7 @@ fun SettingsCell(
         leading?.invoke()
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(titleSummarySpacing),
         ) {
             Text(
                 text = title,
@@ -165,6 +197,8 @@ fun SettingsCell(
                     text = summary,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = summaryMaxLines,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

@@ -9,6 +9,7 @@ object SkipPrefs {
     private const val KEY_AUTO_CLICK = "auto_click_enabled"
     private const val KEY_CLICK_COUNT = "click_count"
     private const val KEY_EXCLUDED_PACKAGES = "excluded_packages"
+    private const val KEY_SHOW_PACKAGE_NAMES = "show_package_names"
 
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(NAME, Context.MODE_PRIVATE)
@@ -32,6 +33,13 @@ object SkipPrefs {
     /** 在这些应用里不自动跳过。返回的是快照，可安全遍历。 */
     fun excludedPackages(context: Context): Set<String> =
         prefs(context).getStringSet(KEY_EXCLUDED_PACKAGES, emptySet())?.toSet() ?: emptySet()
+
+    fun showPackageNames(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_SHOW_PACKAGE_NAMES, false)
+
+    fun setShowPackageNames(context: Context, show: Boolean) {
+        prefs(context).edit { putBoolean(KEY_SHOW_PACKAGE_NAMES, show) }
+    }
 
     fun setExcluded(context: Context, packageName: String, excluded: Boolean) {
         val current = excludedPackages(context).toMutableSet()

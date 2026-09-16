@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.skipskip.app.R
 import com.skipskip.app.ui.theme.SkipSkipTheme
@@ -34,32 +35,48 @@ fun SettingsPage(
     }
 }
 
+/** 二级页标题栏底部留白；弹出菜单据此贴到 header 底边 */
+val HeaderBottomPadding = 8.dp
+
 /**
  * 页面标题。带 [onBack] 时显示返回按钮（二级页）；
- * 不带时与首页标题对齐。
+ * [actions] 放在右上角，例如三点菜单。
+ * 不带返回和操作时与首页标题对齐。
  */
 @Composable
 fun PageHeader(
     title: String,
     onBack: (() -> Unit)? = null,
+    actions: (@Composable () -> Unit)? = null,
 ) {
-    if (onBack != null) {
+    if (onBack != null || actions != null) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 4.dp, end = 16.dp, top = 4.dp, bottom = 8.dp),
+                .padding(
+                    start = if (onBack != null) 4.dp else HeaderInset,
+                    end = if (actions != null) 4.dp else 16.dp,
+                    top = 4.dp,
+                    bottom = HeaderBottomPadding,
+                ),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = stringResource(R.string.back),
-                )
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.back),
+                    )
+                }
             }
             Text(
                 text = title,
+                modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            actions?.invoke()
         }
     } else {
         Text(

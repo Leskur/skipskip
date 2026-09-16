@@ -135,7 +135,11 @@ fun HomeScreen(
         // 页面标题
         PageHeader(title = stringResource(R.string.home_title))
 
-        // 第一组：状态（无小标题）
+        // 第一组：开始（上边距收紧，避免和大标题叠出过大空白）
+        GroupHeader(
+            text = stringResource(R.string.section_start),
+            topPadding = 4.dp,
+        )
         SettingsGroup {
             StatusCell(
                 serviceEnabled = serviceEnabled,
